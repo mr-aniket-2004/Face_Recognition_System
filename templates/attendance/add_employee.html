@@ -1,0 +1,187 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — Add Employee{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .webcam-container { position: relative; width: 100%; max-width: 400px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #000; }
+  .webcam-container video, .webcam-container canvas { width: 100%; display: block; }
+  .webcam-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .scan-corners { width: 180px; height: 180px; position: relative; }
+  .scan-corners::before, .scan-corners::after { content: ''; position: absolute; }
+  .sc { position: absolute; width: 24px; height: 24px; }
+  .sc.tl { top: 0; left: 0; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+  .sc.tr { top: 0; right: 0; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+  .sc.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+  .sc.br { bottom: 0; right: 0; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+  .scan-line { position: absolute; left: 10%; right: 10%; height: 2px; background: var(--cyan); animation: scanMove 2s ease-in-out infinite; opacity: 0.6; }
+  @keyframes scanMove { 0% { top: 10%; } 100% { top: 90%; } }
+</style>
+{% endblock %}
+
+{% block body %}
+{% include "attendance/admin_sidebar.html" %}
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Add New Employee</div>
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline">← Back</a>
+  </div>
+
+  <div class="content">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% else %}alert-error{% endif %}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" action="{% url 'add_employee' %}">
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <!-- Left: Form fields -->
+        <div class="card">
+          <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:20px;">Employee Details</h3>
+          
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">First Name</label>
+              {{ form.first_name }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name</label>
+              {{ form.last_name }}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Employee ID</label>
+            {{ form.employee_id }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            {{ form.email }}
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              {{ form.username }}
+            </div>
+            <!-- <div class="form-group">
+              <label class="form-label">Password</label>
+              {{ form.password }}
+            </div> -->
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Department</label>
+              {{ form.department }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Designation</label>
+              {{ form.designation }}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            {{ form.phone }}
+          </div>
+
+          {% if form.errors %}
+          <div class="alert alert-error">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}{{ error }}<br>{% endfor %}
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Right: Photo -->
+        <div class="card">
+          <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:20px;">Employee Photo</h3>
+          
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <button type="button" class="btn btn-outline" onclick="toggleWebcam()" id="webcamBtn">📷 Use Webcam</button>
+            <label class="btn btn-outline" style="cursor:pointer;">
+              📁 Upload Photo
+              <input type="file" name="photo" accept="image/*" style="display:none;" onchange="previewUpload(this)">
+            </label>
+          </div>
+
+          <!-- Webcam -->
+          <div id="webcamArea" style="display:none;">
+            <div class="webcam-container">
+              <video id="video" autoplay playsinline></video>
+              <canvas id="canvas" style="display:none;"></canvas>
+              <div class="webcam-overlay">
+                <div class="scan-corners">
+                  <div class="sc tl"></div><div class="sc tr"></div>
+                  <div class="sc bl"></div><div class="sc br"></div>
+                  <div class="scan-line"></div>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="capturePhoto()">📸 Capture Photo</button>
+          </div>
+
+          <!-- Preview -->
+          <div id="previewArea" style="display:none;margin-top:16px;">
+            <img id="previewImg" style="width:100%;max-width:400px;border-radius:12px;border:1px solid var(--border);" alt="Preview">
+            <p style="color:var(--green);font-size:13px;margin-top:8px;">✓ Photo captured</p>
+          </div>
+
+          {{ form.captured_photo }}
+
+          <div style="margin-top:24px;">
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;">✓ Add Employee</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let stream = null;
+
+function toggleWebcam() {
+  const area = document.getElementById('webcamArea');
+  const video = document.getElementById('video');
+  
+  if (area.style.display === 'none') {
+    area.style.display = 'block';
+    navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } })
+      .then(s => { stream = s; video.srcObject = s; })
+      .catch(err => alert('Cannot access webcam: ' + err.message));
+  } else {
+    area.style.display = 'none';
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  }
+}
+
+function capturePhoto() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  
+  const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+  document.getElementById('id_captured_photo').value = dataURL;
+  
+  document.getElementById('previewArea').style.display = 'block';
+  document.getElementById('previewImg').src = dataURL;
+  
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  document.getElementById('webcamArea').style.display = 'none';
+}
+
+function previewUpload(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('previewArea').style.display = 'block';
+      document.getElementById('previewImg').src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+{% endblock %}

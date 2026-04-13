@@ -1,0 +1,67 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — Attendance Records{% endblock %}
+
+{% block body %}
+{% include "attendance/admin_sidebar.html" %}
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Attendance Records</div>
+  </div>
+  <div class="content">
+    <!-- Filters -->
+    <div class="card" style="margin-bottom:20px;">
+      <form method="GET" style="display:flex;gap:16px;align-items:flex-end;">
+        <div class="form-group" style="margin-bottom:0;flex:1;">
+          <label class="form-label">Filter by Date</label>
+          <input type="date" name="date" class="form-input" value="{{ date_filter }}">
+        </div>
+        <div class="form-group" style="margin-bottom:0;flex:1;">
+          <label class="form-label">Department</label>
+          <select name="department" class="form-input">
+            <option value="">All Departments</option>
+            {% for val, label in departments %}
+            <option value="{{ val }}" {% if dept_filter == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="{% url 'attendance_records' %}" class="btn btn-outline">Clear</a>
+      </form>
+      
+      <!-- Export Options -->
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;">
+        <a href="{% url 'export_attendance_csv' %}?{% if date_filter %}date={{ date_filter }}&{% endif %}{% if dept_filter %}department={{ dept_filter }}{% endif %}" class="btn btn-outline" style="font-size:14px;">
+          📊 Export CSV
+        </a>
+        <a href="{% url 'export_attendance_pdf' %}?{% if date_filter %}date={{ date_filter }}&{% endif %}{% if dept_filter %}department={{ dept_filter }}{% endif %}" class="btn btn-outline" style="font-size:14px;">
+          📄 Export PDF
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Employee</th><th>ID</th><th>Department</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Status</th><th>Marked By</th></tr>
+        </thead>
+        <tbody>
+          {% for record in records %}
+          <tr>
+            <td>{{ record.employee.user.get_full_name }}</td>
+            <td style="font-family:monospace;color:var(--muted);">{{ record.employee.employee_id }}</td>
+            <td><span class="badge badge-dept">{{ record.employee.get_department_display }}</span></td>
+            <td>{{ record.date|date:"M d, Y" }}</td>
+            <td>{{ record.check_in_time|time:"h:i A" }}</td>
+            <td>{{ record.check_out_time|time:"h:i A"|default:"-" }}</td>
+            <td><span class="badge badge-{{ record.status }}">{{ record.get_status_display }}</span></td>
+            <td style="color:var(--muted);font-size:12px;">{{ record.marked_by }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">No records found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

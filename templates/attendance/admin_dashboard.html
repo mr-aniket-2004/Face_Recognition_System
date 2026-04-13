@@ -1,0 +1,146 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — Admin Dashboard{% endblock %}
+
+{% block body %}
+{% include "attendance/admin_sidebar.html" %}
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span style="font-size:13px;color:var(--muted);">{{ today|date:"D, M d, Y" }}</span>
+      <!-- <form method="POST" action="{% url 'start_recognition' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">📹 Start Camera</button>
+      </form> -->
+      <a href="{% url 'live_monitor' %}" class="btn btn-outline">🖥️ Live Monitor</a>
+    </div>
+  </div>
+
+  <div class="content">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% else %}alert-warning{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="grid-4" style="margin-bottom:24px;">
+      <div class="stat-card" style="--accent-c:var(--blue);">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue);"></div>
+        <div class="stat-label">Total Employees</div>
+        <div class="stat-value" style="color:var(--blue);">{{ total_employees }}</div>
+      </div>
+      <div class="stat-card">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--green);"></div>
+        <div class="stat-label">Present Today</div>
+        <div class="stat-value" style="color:var(--green);">{{ present_today }}</div>
+      </div>
+      <div class="stat-card">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);"></div>
+        <div class="stat-label">Absent Today</div>
+        <div class="stat-value" style="color:var(--red);">{{ absent_today }}</div>
+      </div>
+      <div class="stat-card">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--cyan);"></div>
+        <div class="stat-label">Attendance Rate</div>
+        <div class="stat-value" style="color:var(--cyan);">{{ attendance_rate }}%</div>
+      </div>
+    </div>
+
+    <!-- Recent Attendance -->
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;">Recent Attendance</h3>
+        <a href="{% url 'attendance_records' %}" class="btn btn-outline" style="font-size:12px;">View All →</a>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>ID</th>
+              <th>Department</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in recent_attendance %}
+            <tr>
+              <td style="display:flex;align-items:center;gap:10px;">
+                <div class="avatar">
+                  {% if record.employee.photo %}
+                  <img src="{{ record.employee.photo.url }}" alt="">
+                  {% else %}
+                  {{ record.employee.user.first_name.0 }}
+                  {% endif %}
+                </div>
+                {{ record.employee.user.get_full_name }}
+              </td>
+              <td style="color:var(--muted);font-family:monospace;">{{ record.employee.employee_id }}</td>
+              <td><span class="badge badge-dept">{{ record.employee.get_department_display }}</span></td>
+              <td>{{ record.date|date:"M d, Y" }}</td>
+              <td>{{ record.check_in_time|time:"h:i A" }}</td>
+              <td>
+                <span class="badge badge-{% if record.status == 'present' %}present{% else %}late{% endif %}">
+                  {{ record.get_status_display }}
+                </span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">No attendance records yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Employees -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;">Employees</h3>
+        <div style="display:flex;gap:10px;">
+          <a href="{% url 'export_employee_csv' %}" class="btn btn-outline" style="font-size:12px;">📊 Export CSV</a>
+          <a href="{% url 'export_employee_pdf' %}" class="btn btn-outline" style="font-size:12px;">📄 Export PDF</a>
+          <a href="{% url 'add_employee' %}" class="btn btn-primary">+ Add Employee</a>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>Employee</th><th>ID</th><th>Department</th><th>Designation</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for emp in employees %}
+            <tr>
+              <td style="display:flex;align-items:center;gap:10px;">
+                <div class="avatar">
+                  {% if emp.photo %}
+                  <img src="{{ emp.photo.url }}" alt="">
+                  {% else %}
+                  {{ emp.user.first_name.0 }}
+                  {% endif %}
+                </div>
+                {{ emp.user.get_full_name }}
+              </td>
+              <td style="font-family:monospace;color:var(--muted);">{{ emp.employee_id }}</td>
+              <td><span class="badge badge-dept">{{ emp.get_department_display }}</span></td>
+              <td>{{ emp.designation|default:"-" }}</td>
+              <td>
+                <a href="{% url 'edit_employee' emp.employee_id %}" class="btn btn-outline" style="font-size:11px;padding:4px 10px;">Edit</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">No employees added yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — My Profile{% endblock %}
+
+{% block body %}
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">👁️</div>
+    <div class="logo-text">Face<span>Track</span></div>
+  </div>
+  <div style="padding:20px;border-bottom:1px solid var(--border);text-align:center;">
+    <div style="width:72px;height:72px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--blue),var(--cyan));overflow:hidden;">
+      {% if employee.photo %}<img src="{{ employee.photo.url }}" style="width:100%;height:100%;object-fit:cover;" alt="">{% else %}{{ employee.user.first_name.0 }}{{ employee.user.last_name.0 }}{% endif %}
+    </div>
+    <div style="font-family:var(--font-head);font-size:15px;font-weight:700;">{{ employee.user.get_full_name }}</div>
+    <div style="font-size:11px;color:var(--muted);">{{ employee.employee_id }}</div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{% url 'employee_dashboard' %}" class="nav-item">📊 Dashboard</a>
+    <a href="{% url 'employee_profile' %}" class="nav-item active">👤 My Profile</a>
+    <a href="{% url 'change_password' %}" class="nav-item">🔑 Change Password</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="{% url 'logout' %}" class="btn btn-outline" style="width:100%;justify-content:center;">🚪 Logout</a>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">My Profile</div>
+  </div>
+  <div class="content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div class="card">
+        <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:20px;">Personal Information</h3>
+        <div style="display:grid;gap:16px;">
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Full Name</div>
+            <div style="font-size:16px;font-weight:500;">{{ employee.user.get_full_name }}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Email</div>
+            <div style="font-size:16px;">{{ employee.user.email }}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Phone</div>
+            <div style="font-size:16px;">{{ employee.phone|default:"Not set" }}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Username</div>
+            <div style="font-size:16px;font-family:monospace;">{{ employee.user.username }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:20px;">Work Information</h3>
+        <div style="display:grid;gap:16px;">
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Employee ID</div>
+            <div style="font-size:16px;font-family:monospace;">{{ employee.employee_id }}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Department</div>
+            <div><span class="badge badge-dept" style="font-size:13px;padding:5px 14px;">{{ employee.get_department_display }}</span></div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Designation</div>
+            <div style="font-size:16px;">{{ employee.designation|default:"Not set" }}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Date Joined</div>
+            <div style="font-size:16px;">{{ employee.date_joined|date:"M d, Y" }}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Face Recognition</div>
+            <div>{% if employee.face_encoding %}<span style="color:var(--green);">✓ Enrolled</span>{% else %}<span style="color:var(--yellow);">⚠ Not enrolled</span>{% endif %}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

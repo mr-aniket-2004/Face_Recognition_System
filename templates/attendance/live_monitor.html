@@ -1,0 +1,239 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — Live Monitor{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .cam-container { position: relative; width: 100%; background: #000; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); aspect-ratio: 16/9; }
+  .cam-container video { width: 100%; height: 100%; object-fit: cover; }
+  .cam-overlay { position: absolute; inset: 0; pointer-events: none; }
+  .cam-overlay::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(56,139,253,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(56,139,253,0.04) 1px, transparent 1px); background-size: 30px 30px; }
+  .live-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(63,185,80,0.12); border: 1px solid rgba(63,185,80,0.25); padding: 5px 12px; border-radius: 20px; font-size: 12px; color: var(--green); font-weight: 600; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: blink 1.5s ease infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .detection-log { max-height: 400px; overflow-y: auto; }
+  .log-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid rgba(56,139,253,0.06); }
+  .log-item .time { font-family: monospace; font-size: 12px; color: var(--muted); min-width: 70px; }
+  .face-box { position: absolute; border: 2px solid var(--green); border-radius: 4px; box-shadow: 0 0 10px rgba(63,185,80,0.4); }
+  .face-label { position: absolute; bottom: -22px; left: 0; background: rgba(0,0,0,0.8); color: var(--green); font-size: 11px; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .unknown .face-box { border-color: var(--red); box-shadow: 0 0 10px rgba(248,81,73,0.4); }
+  .unknown .face-label { color: var(--red); }
+</style>
+{% endblock %}
+
+{% block body %}
+{% include "attendance/admin_sidebar.html" %}
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Live Face Recognition</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div class="live-pill" id="statusPill"><div class="live-dot"></div> <span id="statusText">OFFLINE</span></div>
+      <button class="btn btn-primary" id="startBtn" onclick="toggleCamera()">▶ Start Camera</button>
+      <a href="{% url 'admin_dashboard' %}" class="btn btn-outline">← Dashboard</a>
+    </div>
+  </div>
+
+  <div class="content">
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;">
+      <!-- Camera Feed -->
+      <div>
+        <div class="cam-container" id="camContainer">
+          <video id="video" autoplay playsinline style="display:none;"></video>
+          <canvas id="overlay" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+          <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);" id="placeholder">
+            <div style="text-align:center;">
+              <div style="font-size:48px;margin-bottom:12px;">📹</div>
+              <div>Click "Start Camera" to begin face recognition</div>
+            </div>
+          </div>
+          <div class="cam-overlay"></div>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="grid-3" style="margin-top:16px;">
+          <div class="stat-card">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue);"></div>
+            <div class="stat-label">Total Employees</div>
+            <div class="stat-value" style="color:var(--blue);">{{ total_employees }}</div>
+          </div>
+          <div class="stat-card">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--green);"></div>
+            <div class="stat-label">Present Today</div>
+            <div class="stat-value" style="color:var(--green);" id="presentCount">{{ present_count }}</div>
+          </div>
+          <div class="stat-card">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);"></div>
+            <div class="stat-label">Remaining</div>
+            <div class="stat-value" style="color:var(--red);" id="remainCount">{{ total_employees|add:"-"|add:present_count }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detection Log -->
+      <div class="card" style="padding:0;display:flex;flex-direction:column;">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-family:var(--font-head);font-size:14px;font-weight:700;">Detection Log</span>
+        </div>
+        <div class="detection-log" id="detectionLog">
+          {% for record in today_records %}
+          <div class="log-item">
+            <div class="avatar" style="width:28px;height:28px;font-size:11px;">{{ record.employee.user.first_name.0 }}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;">{{ record.employee.user.get_full_name }}</div>
+              <div style="font-size:11px;color:var(--muted);">{{ record.employee.employee_id }}</div>
+            </div>
+            <div class="time">{{ record.check_in_time|time:"h:i A" }}</div>
+          </div>
+          {% empty %}
+          <div style="padding:40px;text-align:center;color:var(--muted);">No detections yet</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let stream = null;
+let running = false;
+let intervalId = null;
+
+function toggleCamera() {
+  if (running) {
+    stopCamera();
+  } else {
+    startCamera();
+  }
+}
+
+async function startCamera() {
+  const video = document.getElementById('video');
+  const placeholder = document.getElementById('placeholder');
+  const btn = document.getElementById('startBtn');
+  
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+    video.srcObject = stream;
+    video.style.display = 'block';
+    placeholder.style.display = 'none';
+    running = true;
+    btn.textContent = '⏹ Stop Camera';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-danger');
+    document.getElementById('statusText').textContent = 'LIVE';
+    
+    // Process frames every 2 seconds
+    intervalId = setInterval(processFrame, 2000);
+  } catch (err) {
+    alert('Cannot access webcam: ' + err.message);
+  }
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (intervalId) { clearInterval(intervalId); intervalId = null; }
+  
+  const video = document.getElementById('video');
+  video.style.display = 'none';
+  document.getElementById('placeholder').style.display = 'flex';
+  running = false;
+  
+  const btn = document.getElementById('startBtn');
+  btn.textContent = '▶ Start Camera';
+  btn.classList.remove('btn-danger');
+  btn.classList.add('btn-primary');
+  document.getElementById('statusText').textContent = 'OFFLINE';
+}
+
+async function processFrame() {
+  if (!running) return;
+  
+  const video = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  
+  const dataURL = canvas.toDataURL('image/jpeg', 0.7);
+  
+  try {
+    const resp = await fetch('/api/process-frame/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({ image: dataURL }),
+    });
+    
+    const data = await resp.json();
+    if (data.faces) {
+      drawDetections(data.faces);
+      data.faces.forEach(face => {
+        if (face.just_marked) {
+          addLogEntry(face.name, face.employee_id);
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Frame processing error:', err);
+  }
+}
+
+function drawDetections(faces) {
+  // Clear previous overlays (simplified - in production use canvas overlay)
+  const overlay = document.getElementById('overlay');
+  const ctx = overlay.getContext('2d');
+  const video = document.getElementById('video');
+  overlay.width = video.videoWidth;
+  overlay.height = video.videoHeight;
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  
+  faces.forEach(face => {
+    const [top, right, bottom, left] = face.location;
+    const isKnown = face.is_known;
+    
+    ctx.strokeStyle = isKnown ? '#3fb950' : '#f85149';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(left, top, right - left, bottom - top);
+    
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(left, bottom, right - left, 24);
+    ctx.fillStyle = isKnown ? '#3fb950' : '#f85149';
+    ctx.font = '14px DM Sans';
+    const label = isKnown ? `${face.name}${face.just_marked ? ' ✓' : face.already_marked ? ' (done)' : ''}` : 'Unknown';
+    ctx.fillText(label, left + 4, bottom + 17);
+  });
+}
+
+function addLogEntry(name, empId) {
+  const log = document.getElementById('detectionLog');
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  
+  const html = `<div class="log-item" style="animation:fadeUp .3s ease;">
+    <div class="avatar" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,var(--green),var(--cyan));">${name[0]}</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:500;">${name}</div>
+      <div style="font-size:11px;color:var(--muted);">${empId}</div>
+    </div>
+    <div class="time">${time}</div>
+  </div>`;
+  
+  log.insertAdjacentHTML('afterbegin', html);
+  
+  // Update count
+  const presentEl = document.getElementById('presentCount');
+  const count = parseInt(presentEl.textContent) + 1;
+  presentEl.textContent = count;
+}
+
+function getCookie(name) {
+  let val = null;
+  document.cookie.split(';').forEach(c => {
+    c = c.trim();
+    if (c.startsWith(name + '=')) val = decodeURIComponent(c.substring(name.length + 1));
+  });
+  return val;
+}
+</script>
+{% endblock %}

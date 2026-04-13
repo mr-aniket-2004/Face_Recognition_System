@@ -1,0 +1,27 @@
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">👁️</div>
+    <div>
+      <div class="logo-text">Face<span>Track</span></div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a href="{% url 'admin_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">📊 Dashboard</a>
+    <a href="{% url 'employee_list' %}" class="nav-item {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}">👥 Employees</a>
+    <a href="{% url 'add_employee' %}" class="nav-item {% if request.resolver_match.url_name == 'add_employee' %}active{% endif %}">➕ Add Employee</a>
+    <a href="{% url 'attendance_records' %}" class="nav-item {% if request.resolver_match.url_name == 'attendance_records' %}active{% endif %}">📋 Attendance</a>
+    <div class="nav-label" style="margin-top:16px;">Recognition</div>
+    <a href="{% url 'live_monitor' %}" class="nav-item {% if request.resolver_match.url_name == 'live_monitor' %}active{% endif %}">📹 Live Monitor</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div class="avatar">{{ request.user.first_name.0 }}{{ request.user.last_name.0 }}</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;">{{ request.user.get_full_name }}</div>
+        <div style="font-size:11px;color:var(--muted);">Administrator</div>
+      </div>
+    </div>
+    <a href="{% url 'logout' %}" class="btn btn-outline" style="width:100%;justify-content:center;">🚪 Logout</a>
+  </div>
+</aside>

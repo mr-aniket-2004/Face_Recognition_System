@@ -1,0 +1,169 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — Edit Employee{% endblock %}
+
+{% block body %}
+{% include "attendance/admin_sidebar.html" %}
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Edit Employee — {{ employee.employee_id }}</div>
+    <div style="display:flex;gap:10px;">
+      <a href="{% url 'admin_dashboard' %}" class="btn btn-outline">← Back</a>
+      <form method="POST" action="{% url 'delete_employee' employee.employee_id %}"
+        onsubmit="return confirm('Delete this employee?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="content">
+    {% if messages %}
+    {% for message in messages %}
+    <div
+      class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% else %}alert-error{% endif %}">
+      {{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div class="card">
+          <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:20px;">Edit Details</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">First Name</label>
+              {{ form.first_name }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name</label>
+              {{ form.last_name }}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            {{ form.email }}
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Department</label>
+              {{ form.department }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Designation</label>
+              {{ form.designation }}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            {{ form.phone }}
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:20px;">Photo</h3>
+          {% if employee.photo %}
+          <img src="{{ employee.photo.url }}"
+            style="width:200px;height:200px;object-fit:cover;border-radius:12px;border:1px solid var(--border);margin-bottom:16px;"
+            alt="">
+          <p style="color:var(--green);font-size:12px;margin-bottom:16px;">
+            {% if employee.face_encoding %}✓ Face encoding exists{% else %}⚠️ No face encoding{% endif %}
+          </p>
+          {% endif %}
+          <div class="form-group">
+            <div style="display:flex;gap:20px;margin-bottom:16px;">
+              <button type="button" class="btn btn-outline" onclick="toggleWebcam()" id="webcamBtn">📷 Use
+                Webcam</button>
+              <label class="btn btn-outline" style="cursor:pointer;">
+
+                {{ form.photo }}
+              </label>
+            </div>
+
+            <!-- Webcam -->
+            <div id="webcamArea" style="display:none;">
+              <div class="webcam-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+              </div>
+              <button type="button" class="btn btn-primary" style="width:100%;margin-top:12px;"
+                onclick="capturePhoto()">📸 Capture Photo</button>
+            </div>
+
+            <!-- Preview -->
+            <div id="previewArea" style="display:none;margin-top:16px;">
+              <img id="previewImg" style="width:200px;height:200px;object-fit:cover;border-radius:12px;">
+            </div>
+
+            <!-- Hidden field -->
+            <input type="hidden" name="captured_photo" id="id_captured_photo">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;margin-top:20px;">✓ Update
+            Employee</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<script>
+  let stream = null;
+
+  function toggleWebcam() {
+    const area = document.getElementById('webcamArea');
+    const video = document.getElementById('video');
+
+    if (area.style.display === 'none') {
+      area.style.display = 'block';
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(s => { stream = s; video.srcObject = s; })
+        .catch(err => alert('Webcam error: ' + err.message));
+    } else {
+      area.style.display = 'none';
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    }
+  }
+
+  function capturePhoto() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+
+    document.getElementById('id_captured_photo').value = dataURL;
+
+    document.getElementById('previewArea').style.display = 'block';
+    document.getElementById('previewImg').src = dataURL;
+
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    document.getElementById('webcamArea').style.display = 'none';
+  }
+
+
+  // Add this at the end of your <script> in edit_employee.html
+  const fileInput = document.querySelector('input[name="photo"]');
+
+  fileInput.addEventListener('change', function (event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      // Show preview
+      document.getElementById('previewArea').style.display = 'block';
+      document.getElementById('previewImg').src = e.target.result;
+
+      // Clear webcam captured_photo because file upload is used
+      document.getElementById('id_captured_photo').value = '';
+    };
+    reader.readAsDataURL(file);
+  });
+</script>
+
+{% endblock %}

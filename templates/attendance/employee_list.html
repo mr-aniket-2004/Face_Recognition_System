@@ -1,0 +1,49 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — Employees{% endblock %}
+
+{% block body %}
+{% include "attendance/admin_sidebar.html" %}
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">All Employees</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <a href="{% url 'export_employee_csv' %}" class="btn btn-outline">📊 Export CSV</a>
+      <a href="{% url 'export_employee_pdf' %}" class="btn btn-outline">📄 Export PDF</a>
+      <a href="{% url 'add_employee' %}" class="btn btn-primary">+ Add Employee</a>
+    </div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Employee</th><th>ID</th><th>Department</th><th>Designation</th><th>Phone</th><th>Face Encoded</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for emp in employees %}
+          <tr>
+            <td style="display:flex;align-items:center;gap:10px;">
+              <div class="avatar">
+                {% if emp.photo %}<img src="{{ emp.photo.url }}" alt="">{% else %}{{ emp.user.first_name.0 }}{% endif %}
+              </div>
+              {{ emp.user.get_full_name }}
+            </td>
+            <td style="font-family:monospace;color:var(--muted);">{{ emp.employee_id }}</td>
+            <td><span class="badge badge-dept">{{ emp.get_department_display }}</span></td>
+            <td>{{ emp.designation|default:"-" }}</td>
+            <td style="color:var(--muted);">{{ emp.phone|default:"-" }}</td>
+            <td>
+              {% if emp.face_encoding %}<span style="color:var(--green);">✓ Yes</span>{% else %}<span style="color:var(--red);">✗ No</span>{% endif %}
+            </td>
+            <td>
+              <a href="{% url 'edit_employee' emp.employee_id %}" class="btn btn-outline" style="font-size:11px;padding:4px 10px;">Edit</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">No employees</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
