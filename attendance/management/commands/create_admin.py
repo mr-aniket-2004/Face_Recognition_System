@@ -14,10 +14,10 @@ class Command(BaseCommand):
         user = User.objects.create_superuser(
             username='admin',
             email='admin@facetrack.com',
-            password='admin123',
+            password='SystemAdmin@2026',
             first_name='System',
             last_name='Admin',
         )
         UserRole.objects.create(user=user, role='admin')
         
-        self.stdout.write(self.style.SUCCESS('Admin user created! Username: admin | Password: admin123'))
+        self.stdout.write(self.style.SUCCESS('Admin user created! Username: admin | Password: SystemAdmin@2026'))
