@@ -1,0 +1,189 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — OTP Verification{% endblock %}
+
+{% block extra_styles %}
+<style>
+  body { display: flex; align-items: center; justify-content: center; }
+  .grid-bg { position: fixed; inset: 0; z-index: 0; background-image: linear-gradient(rgba(0,212,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.04) 1px,transparent 1px); background-size: 50px 50px; animation: gridMove 20s linear infinite; }
+  @keyframes gridMove{0%{background-position:0 0}100%{background-position:50px 50px}}
+  .scanline{position:fixed;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.12;animation:scan 6s linear infinite;z-index:0;}
+  @keyframes scan{0%{top:-2px}100%{top:100%}}
+  .login-container{position:relative;z-index:10;width:100%;max-width:460px;padding:20px;animation:fadeUp .8s ease both;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+  .login-logo{text-align:center;margin-bottom:36px;}
+  .login-logo-icon{width:72px;height:72px;margin:0 auto 16px;position:relative;}
+  .login-logo-icon svg{width:100%;height:100%;}
+  .logo-ring{position:absolute;inset:-8px;border:1px solid var(--cyan);border-radius:50%;animation:spin 8s linear infinite;opacity:.4;}
+  .logo-ring::before{content:'';position:absolute;top:-3px;left:50%;width:6px;height:6px;background:var(--cyan);border-radius:50%;transform:translateX(-50%);}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .login-title{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;letter-spacing:6px;background:linear-gradient(135deg,var(--cyan),var(--blue),#7b2fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .login-sub{font-size:11px;letter-spacing:4px;color:var(--muted);margin-top:4px;text-transform:uppercase;}
+  .login-card{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:40px;position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,100,255,.08);}
+  .login-card::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:cardScan 3s ease-in-out infinite;}
+  @keyframes cardScan{0%{left:-100%}50%{left:100%}100%{left:100%}}
+  .corner{position:absolute;width:20px;height:20px;}
+  .corner.tl{top:0;left:0;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+  .corner.tr{top:0;right:0;border-top:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+  .corner.bl{bottom:0;left:0;border-bottom:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+  .corner.br{bottom:0;right:0;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+  .user-info{background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:4px;padding:16px;margin-bottom:24px;font-size:13px;}
+  .user-info-label{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+  .user-info-value{color:var(--cyan);font-family:'Rajdhani',monospace;font-size:14px;}
+  .otp-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:20px;text-align:center;letter-spacing:2px;}
+  .otp-input-group{margin-bottom:24px;}
+  .otp-label{font-size:11px;letter-spacing:3px;color:var(--muted);margin-bottom:8px;display:block;}
+  .otp-inputs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px;}
+  .otp-input{width:100%;aspect-ratio:1;border:1px solid var(--border);background:var(--input);color:var(--cyan);font-size:24px;font-weight:700;text-align:center;border-radius:4px;font-family:monospace;transition:all .3s;}
+  .otp-input:focus{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,212,255,0.2);outline:none;}
+  #otp-code{width:100%;padding:12px;border:1px solid var(--border);background:var(--input);color:var(--cyan);font-size:14px;border-radius:4px;font-family:monospace;display:block;}
+  #otp-code:focus{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,212,255,0.2);outline:none;}
+  .otp-info{font-size:12px;color:var(--muted);margin-bottom:20px;text-align:center;line-height:1.6;}
+  .otp-timer{font-size:13px;color:var(--cyan);text-align:center;margin-bottom:16px;font-weight:600;}
+  .btn-login{width:100%;padding:15px;background:linear-gradient(135deg,var(--blue),var(--cyan));border:none;color:#000;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:4px;cursor:pointer;transition:all .3s;border-radius:2px;position:relative;overflow:hidden;margin-top:8px;}
+  .btn-login::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transition:.5s;}
+  .btn-login:hover::before{left:100%;}
+  .btn-login:hover{transform:translateY(-1px);box-shadow:0 10px 30px rgba(0,212,255,.3);}
+  .btn-resend{width:100%;padding:12px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);font-family:'Orbitron',monospace;font-size:11px;font-weight:600;letter-spacing:3px;cursor:pointer;transition:all .3s;border-radius:2px;margin-top:12px;}
+  .btn-resend:hover{background:rgba(0,212,255,0.1);box-shadow:0 0 20px rgba(0,212,255,0.2);}
+  .btn-back{width:100%;padding:12px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Orbitron',monospace;font-size:11px;font-weight:600;letter-spacing:3px;cursor:pointer;transition:all .3s;border-radius:2px;margin-top:8px;}
+  .btn-back:hover{border-color:var(--text);color:var(--text);}
+  .login-alert{margin-bottom:20px;padding:10px 16px;border-radius:4px;font-size:13px;}
+  .alert-error{background:rgba(248,81,73,0.12);color:var(--red);border:1px solid rgba(248,81,73,0.2);}
+  .alert-success{background:rgba(76,175,80,0.12);color:var(--green);border:1px solid rgba(76,175,80,0.2);}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+<div class="login-container">
+  <div class="login-logo">
+    <div class="login-logo-icon">
+      <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="35" stroke="#0d2d5a" stroke-width="1"/>
+        <circle cx="36" cy="30" r="10" stroke="#00d4ff" stroke-width="1.5"/>
+        <path d="M16 56c0-11 9-18 20-18s20 7 20 18" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="10" y1="20" x2="18" y2="20" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="10" y1="20" x2="10" y2="28" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="54" y1="20" x2="62" y2="20" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="62" y1="20" x2="62" y2="28" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="10" y1="52" x2="18" y2="52" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="10" y1="44" x2="10" y2="52" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="54" y1="52" x2="62" y2="52" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="62" y1="44" x2="62" y2="52" stroke="#00d4ff" stroke-width="1.5"/>
+      </svg>
+      <div class="logo-ring"></div>
+    </div>
+    <div class="login-title">FACETRACK</div>
+    <div class="login-sub">OTP Verification</div>
+  </div>
+
+  <div class="login-card">
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="login-alert {% if message.tags %}alert-{{ message.tags }}{% endif %}" style="{% if message.tags == 'error' %}background:rgba(248,81,73,0.12);color:var(--red);border:1px solid rgba(248,81,73,0.2);{% elif message.tags == 'success' %}background:rgba(76,175,80,0.12);color:var(--green);border:1px solid rgba(76,175,80,0.2);{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="user-info">
+      <div class="user-info-label">🔐 Authenticated User</div>
+      <div class="user-info-value">{{ username }}</div>
+    </div>
+
+    <div class="otp-title">Enter Verification Code</div>
+    
+    <div class="otp-info">
+      We've sent a 6-digit code to your registered email address. Please enter it below to complete your login.
+    </div>
+
+    <form method="POST" action="{% url 'verify_otp' %}">
+      {% csrf_token %}
+      
+      <div class="otp-input-group">
+        <label class="otp-label">VERIFICATION CODE</label>
+        <input 
+          type="text" 
+          name="otp_code" 
+          id="otp-code"
+          placeholder="000000"
+          maxlength="6"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          required
+          autofocus
+        >
+      </div>
+
+      <div class="otp-timer" id="timer-display" style="display:none;">
+        ⏱️ Code expires in: <span id="timer">5:00</span>
+      </div>
+
+      <button type="submit" class="btn-login">VERIFY OTP</button>
+      <button type="button" class="btn-resend" onclick="resendOTP()">RESEND CODE</button>
+      <a href="{% url 'login' %}" class="btn-back" onclick="event.preventDefault(); backToLogin();">BACK TO LOGIN</a>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Auto-focus behavior for numeric input
+  document.getElementById('otp-code').addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+  });
+
+  // Resend OTP
+  function resendOTP() {
+    if (confirm('Are you sure you want to resend the OTP?')) {
+      window.location.href = '{% url "resend_otp" %}';
+    }
+  }
+
+  // Back to login
+  function backToLogin() {
+    if (confirm('Are you sure? Your OTP will be invalidated.')) {
+      window.location.href = '{% url "login" %}';
+    }
+  }
+
+  // Timer function
+  function startTimer(minutes = 2) {
+
+    let totalSeconds = minutes * 60;
+    console.log(minutes);
+    console.log(totalSeconds);
+    const timerDisplay = document.getElementById('timer-display');
+    const timerSpan = document.getElementById('timer');
+    
+    if (timerDisplay) {
+      timerDisplay.style.display = 'block';
+    }
+
+    const interval = setInterval(() => {
+      totalSeconds--;
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      
+      if (timerSpan) {
+        timerSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+
+      if (totalSeconds <= 0) {
+        clearInterval(interval);
+        if (timerSpan) {
+          timerSpan.textContent = 'Expired';
+        }
+      }
+    }, 1000);
+  }
+
+  // Start timer on page load
+  window.addEventListener('load', () => {
+    startTimer(2);
+  });
+</script>
+{% endblock %}

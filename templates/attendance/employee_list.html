@@ -44,6 +44,33 @@
         </tbody>
       </table>
     </div>
-  </div>
+
+    <!-- Pagination -->
+    {% if employees.has_other_pages %}
+    <div style="margin-top:20px;display:flex;align-items:center;justify-content:center;gap:8px;">
+      {% if employees.has_previous %}
+        <a href="?page=1" class="btn btn-outline" style="padding:8px 12px;font-size:11px;">« First</a>
+        <a href="?page={{ employees.previous_page_number }}" class="btn btn-outline" style="padding:8px 12px;font-size:11px;">‹ Previous</a>
+      {% endif %}
+
+      <div style="display:flex;gap:4px;align-items:center;">
+        {% for num in employees.paginator.page_range %}
+          {% if employees.number == num %}
+            <span style="background:var(--cyan);color:#000;padding:8px 10px;border-radius:4px;font-weight:600;font-size:12px;">{{ num }}</span>
+          {% elif num > employees.number|add:'-3' and num < employees.number|add:'3' %}
+            <a href="?page={{ num }}" style="background:var(--border);color:var(--text);padding:8px 10px;border-radius:4px;text-decoration:none;font-size:12px;transition:all .2s;">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      {% if employees.has_next %}
+        <a href="?page={{ employees.next_page_number }}" class="btn btn-outline" style="padding:8px 12px;font-size:11px;">Next ›</a>
+        <a href="?page={{ employees.paginator.num_pages }}" class="btn btn-outline" style="padding:8px 12px;font-size:11px;">Last »</a>
+      {% endif %}
+    </div>
+    <div style="text-align:center;margin-top:12px;color:var(--muted);font-size:12px;">
+      Page {{ employees.number }} of {{ employees.paginator.num_pages }} (Total: {{ employees.paginator.count }} employees)
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

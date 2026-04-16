@@ -1,0 +1,121 @@
+{% extends "attendance/base.html" %}
+{% block title %}FaceTrack — Manual Checkout{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .emp-sidebar-profile { padding: 20px; border-bottom: 1px solid var(--border); text-align: center; }
+  .emp-avatar-lg { width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: #fff; background: linear-gradient(135deg, var(--blue), var(--cyan)); box-shadow: 0 0 20px var(--blue-glow); position: relative; overflow: hidden; }
+  .emp-avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- Employee Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">👁️</div>
+    <div class="logo-text">Face<span>Track</span></div>
+  </div>
+  <div class="emp-sidebar-profile">
+    <div class="emp-avatar-lg">
+      {% if employee.photo %}<img src="{{ employee.photo.url }}" alt="">{% else %}{{ employee.user.first_name.0 }}{{ employee.user.last_name.0 }}{% endif %}
+    </div>
+    <div style="font-family:var(--font-head);font-size:15px;font-weight:700;">{{ employee.user.get_full_name }}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;">{{ employee.employee_id }}</div>
+    <div style="margin-top:8px;"><span class="badge badge-dept">{{ employee.get_department_display }}</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{% url 'employee_dashboard' %}" class="nav-item active">📊 Dashboard</a>
+    <a href="{% url 'employee_profile' %}" class="nav-item">👤 My Profile</a>
+    <a href="{% url 'change_password' %}" class="nav-item">🔑 Change Password</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;">ATTENDANCE RATE</div>
+      <div style="height:6px;background:rgba(56,139,253,0.1);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:75%;background:linear-gradient(90deg,var(--blue),var(--green));border-radius:3px;"></div>
+      </div>
+      <div style="font-family:var(--font-head);font-size:14px;color:var(--green);margin-top:4px;">75%</div>
+    </div>
+    <a href="{% url 'logout' %}" class="btn btn-outline" style="width:100%;justify-content:center;">🚪 Logout</a>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Manual Checkout</div>
+    <a href="{% url 'employee_dashboard' %}" class="btn btn-outline" style="font-size:12px;">← Back to Dashboard</a>
+  </div>
+
+  <div class="content">
+    <!-- Current Status -->
+    <div class="card" style="margin-bottom:20px;">
+      <div style="font-size:13px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">CURRENT STATUS</div>
+      <div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:8px;">
+        <span style="color:var(--green);">✓ Present</span>
+        <span style="font-size:14px;color:var(--muted);margin-left:12px;">
+          Checked in at {{ today_record.check_in_time|time:"h:i A" }}
+        </span>
+      </div>
+      <div style="font-size:14px;color:var(--yellow);margin-top:8px;">
+        ⏱️ Hours elapsed: {{ hours_elapsed|floatformat:2 }}h
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;">
+        Since you've been working for more than 8 hours, you can set a manual checkout time.
+      </div>
+    </div>
+
+    <!-- Manual Checkout Form -->
+    <div class="card">
+      <h3 style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:16px;">Set Manual Checkout Time</h3>
+
+      <form method="post" style="max-width:400px;">
+        {% csrf_token %}
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Checkout Date</label>
+          {{ form.checkout_date }}
+          {% if form.checkout_date.errors %}
+            <div style="color:var(--red);font-size:12px;margin-top:4px;">
+              {% for error in form.checkout_date.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">{{ form.checkout_date.help_text }}</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Checkout Time</label>
+          {{ form.checkout_time }}
+          {% if form.checkout_time.errors %}
+            <div style="color:var(--red);font-size:12px;margin-top:4px;">
+              {% for error in form.checkout_time.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">{{ form.checkout_time.help_text }}</div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div style="color:var(--red);font-size:12px;margin-bottom:16px;padding:8px;background:rgba(255,59,48,0.1);border-radius:4px;">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+
+        <div style="display:flex;gap:12px;">
+          <button type="submit" class="btn btn-primary" onclick="return confirm('Are you sure you want to set this checkout time?')">✅ Set Checkout Time</button>
+          <a href="{% url 'employee_dashboard' %}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+
+      <div style="margin-top:20px;padding:16px;background:var(--card-hover);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--cyan);">💡 Important Notes:</div>
+        <ul style="font-size:12px;color:var(--muted);margin:0;padding-left:16px;">
+          <li>Checkout time must be after your check-in time</li>
+          <li>Checkout time cannot be in the future</li>
+          <li>Maximum hours allowed: 24 hours</li>
+          <li>This feature is only available after 8 hours of work</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Employee, Attendance, UserRole
+from .models import Employee, Attendance, UserRole , UserOTP
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
@@ -17,3 +17,9 @@ class AttendanceAdmin(admin.ModelAdmin):
 class UserRoleAdmin(admin.ModelAdmin):
     list_display = ('user', 'role')
     list_filter = ('role',)
+
+
+@admin.register(UserOTP)
+class UserOTPAdmin(admin.ModelAdmin):
+    list_display = ('user', 'otp_code', 'created_at', 'expires_at')
+    search_fields = ('user__username',)

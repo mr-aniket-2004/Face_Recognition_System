@@ -4,7 +4,10 @@ from . import views
 urlpatterns = [
     path('', views.login_view, name='home'),
     path('login/', views.login_view, name='login'),
+    path('verify-otp/', views.verify_otp, name='verify_otp'),
+    path('resend-otp/', views.resend_otp, name='resend_otp'),
     path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('set-password/<uidb64>/<token>/', views.set_password, name='set_password'),
     path('logout/', views.logout_view, name='logout'),
     
     # Admin
@@ -26,4 +29,6 @@ urlpatterns = [
     path('employee-dashboard/', views.employee_dashboard, name='employee_dashboard'),
     path('employee-profile/', views.employee_profile, name='employee_profile'),
     path('change-password/', views.change_password, name='change_password'),
+    path('employee-checkout/', views.employee_checkout, name='employee_checkout'),
+    path('manual-checkout/', views.manual_checkout, name='manual_checkout'),
 ]

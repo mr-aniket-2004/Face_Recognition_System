@@ -55,8 +55,31 @@
       <div style="font-size:13px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">TODAY'S STATUS</div>
       <div style="font-family:var(--font-head);font-size:22px;font-weight:700;margin-bottom:8px;">
         {% if today_record %}
-          <span style="color:var(--green);">✓ Present</span>
-          <span style="font-size:14px;color:var(--muted);margin-left:12px;">Checked in at {{ today_record.check_in_time|time:"h:i A" }}</span>
+          {% if today_record.check_out_time %}
+            <span style="color:var(--green);">✓ Checked Out</span>
+            <span style="font-size:14px;color:var(--muted);margin-left:12px;">Checked in at {{ today_record.check_in_time|time:"h:i A" }} • Checked out at {{ today_record.check_out_time|time:"h:i A" }}</span>
+            {% if today_record.hours_worked %}
+              <div style="font-size:16px;color:var(--cyan);margin-top:4px;">⏱️ Hours worked: {{ today_record.hours_worked|floatformat:2 }}h</div>
+            {% endif %}
+          {% else %}
+            <span style="color:var(--green);">✓ Present</span>
+            <span style="font-size:14px;color:var(--muted);margin-left:12px;">Checked in at {{ today_record.check_in_time|time:"h:i A" }}</span>
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <a href="{% url 'employee_checkout' %}" class="btn btn-primary" style="font-size:14px;padding:8px 16px;z-index:10;position:relative;" onclick="return confirm('Are you sure you want to check out now?')">🚪 Check Out</a>
+              {% if show_manual_checkout %}
+                <form method="get" action="{% url 'manual_checkout' %}" style="display:inline;">
+                  <button type="submit" class="btn btn-outline" style="font-size:14px;padding:8px 16px;color:var(--yellow);border-color:var(--yellow);z-index:10;position:relative;background:var(--card);border:2px solid var(--yellow);cursor:pointer;">
+                    ⏰ Set Manual Checkout
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+            {% if show_manual_checkout %}
+              <div style="font-size:12px;color:var(--yellow);margin-top:8px;">
+                ⚠️ Hours elapsed: {{ hours_elapsed|floatformat:2 }}h - You can now set a manual checkout time
+              </div>
+            {% endif %}
+          {% endif %}
         {% else %}
           <span style="color:var(--muted);">Not checked in yet</span>
         {% endif %}
@@ -96,7 +119,7 @@
       </div>
       <table>
         <thead>
-          <tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Status</th></tr>
+          <tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th></tr>
         </thead>
         <tbody>
           {% for record in all_records %}
@@ -104,10 +127,17 @@
             <td>{{ record.date|date:"D, M d, Y" }}</td>
             <td>{{ record.check_in_time|time:"h:i A" }}</td>
             <td>{{ record.check_out_time|time:"h:i A"|default:"-" }}</td>
+            <td>
+              {% if record.hours_worked %}
+                <span style="color:var(--cyan);font-weight:600;">{{ record.hours_worked|floatformat:2 }}h</span>
+              {% else %}
+                -
+              {% endif %}
+            </td>
             <td><span class="badge badge-{{ record.status }}">{{ record.get_status_display }}</span></td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:40px;">No attendance records yet</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">No attendance records yet</td></tr>
           {% endfor %}
         </tbody>
       </table>
