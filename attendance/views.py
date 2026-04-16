@@ -227,11 +227,13 @@ def send_password_setup_email(user, request):
     reset_link = build_password_reset_link(request, user)
     send_mail(
         'FaceTrack Password Setup',
-        f'''Hello {user.get_full_name() or user.username},
+        f'''Hello {user.get_full_name() },
 
 A request was made to set your FaceTrack password.
 
 Please use the link below and enter the OTP from this email when prompted.
+
+Username: {user.username}
 
 Set Password Link:
 {reset_link}
