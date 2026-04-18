@@ -11,7 +11,7 @@
 ![Django](https://img.shields.io/badge/Django-Framework-green?style=for-the-badge\&logo=django)
 ![OpenCV](https://img.shields.io/badge/OpenCV-Computer_Vision-red?style=for-the-badge\&logo=opencv)
 ![NumPy](https://img.shields.io/badge/NumPy-Numerical-blue?style=for-the-badge\&logo=numpy)
-![SQLite](https://img.shields.io/badge/SQLite-Database-lightgrey?style=for-the-badge\&logo=sqlite)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-DB-0a0a0a?style=for-the-badge&logo=postgresql&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-UI-blue?style=for-the-badge\&logo=tailwindcss)
 
 ---
