@@ -182,7 +182,7 @@ python manage.py create_admin
 Default:
 
 * Username: `admin`
-* Password: `admin123`
+* Password: `SystemAdmin@2026`
 
 ---
 
