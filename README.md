@@ -1,162 +1,233 @@
-# FaceTrack — Smart Attendance System
+# 🚀 FaceTrack — Smart Attendance System
 
-FaceTrack is a Django-based attendance management application with face recognition support.
-It allows admins to add employees, mark attendance via webcam or live monitoring, and export reports in CSV/PDF.
+![Banner](https://capsule-render.vercel.app/api?type=waving\&color=0:0f2027,100:00c6ff\&height=220\&section=header\&text=FaceTrack%20Attendance%20System\&fontSize=32\&fontColor=ffffff\&animation=fadeIn)
+
+![GitHub stars](https://img.shields.io/github/stars/mr-aniket-2004/Face_Recognition_System?style=for-the-badge)
+![GitHub forks](https://img.shields.io/github/forks/mr-aniket-2004/Face_Recognition_System?style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/mr-aniket-2004/Face_Recognition_System?style=for-the-badge)
+![License](https://img.shields.io/github/license/mr-aniket-2004/Face_Recognition_System?style=for-the-badge)
+
+![Python](https://img.shields.io/badge/Python-3.x-blue?style=for-the-badge\&logo=python)
+![Django](https://img.shields.io/badge/Django-Framework-green?style=for-the-badge\&logo=django)
+![OpenCV](https://img.shields.io/badge/OpenCV-Computer_Vision-red?style=for-the-badge\&logo=opencv)
+![NumPy](https://img.shields.io/badge/NumPy-Numerical-blue?style=for-the-badge\&logo=numpy)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-DB-0a0a0a?style=for-the-badge&logo=postgresql&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-UI-blue?style=for-the-badge\&logo=tailwindcss)
 
 ---
 
-## 🚀 Setup Instructions
+## 📌 Project Overview
 
-### 1. Prerequisites
-- Python 3.10+ (recommended)
-- pip
-- Webcam (for face recognition capture and live monitoring)
+**FaceTrack** is a smart, AI-powered attendance system built using **Django + OpenCV**.
+It automates attendance tracking using **face recognition**, eliminating manual entry, proxy attendance, and human errors.
 
-### 2. Clone the Project
+The system includes:
+
+* 🔐 Secure OTP-based authentication
+* 📷 Real-time face detection & recognition
+* 📊 Admin analytics and reporting
+* 👨‍💼 Employee self-service dashboard
+
+---
+
+## ✨ Core Features
+
+### 👨‍💼 Admin Module
+
+* Add & manage employees
+* Capture face via webcam / upload image
+* Automatic face encoding
+* Live attendance monitoring
+* Export reports (CSV / PDF)
+* Filter attendance by date & department
+
+### 👤 Employee Module
+
+* Secure login with OTP
+* Dashboard with attendance stats
+* View attendance history
+* Change / reset password
+* Manual checkout (if needed)
+
+### 🤖 Smart System Features
+
+* Face Recognition using **LBPH**
+* Face Detection using **Haar Cascade**
+* Email-based OTP verification
+* Real-time webcam processing
+* Attendance auto-marking
+
+---
+
+## 🧰 Tech Stack
+
+### 💻 Backend
+
+* Python
+* Django
+
+### 🎨 Frontend
+
+* HTML, CSS, JavaScript
+* Tailwind CSS
+
+### 🧠 AI / ML
+
+* OpenCV
+* NumPy
+* Haar Cascade
+* LBPH Algorithm
+
+### 🗄️ Database
+
+* Postgresql
+
+### 🛠️ Tools
+
+* VS Code
+* Git & GitHub
+
+---
+
+## 🏗️ Project Architecture
+
+```
+User (Admin / Employee)
+        ↓
+Frontend (HTML, CSS, JS, Tailwind)
+        ↓
+Django Backend (Views + Logic)
+        ↓
+Database (SQLite)
+        ↓
+Face Recognition (OpenCV + LBPH)
+        ↓
+Email Service (SMTP)
+```
+
+---
+
+## 🔄 System Flow
+
+### 🔐 Authentication
+
+```
+Login → Validate → Generate OTP → Verify OTP → Dashboard
+```
+
+### 👨‍💼 Admin Flow
+
+```
+Login → Dashboard → Add Employee → Capture Face → Encode → Store → Monitor Attendance
+```
+
+### 👤 Employee Flow
+
+```
+Login → Dashboard → Face Scan → Attendance Marked → View Records → Checkout
+```
+
+---
+
+## ⚙️ Setup Instructions
+
+### 🔹 1. Clone Repository
+
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/mr-aniket-2004/Face_Recognition_System.git
 cd FRAS
 ```
 
-### 3. Create and Activate Virtual Environment
+### 🔹 2. Virtual Environment
+
 ```bash
 python -m venv venv
 
-# Windows:
+# Windows
 venv\Scripts\activate
 
-# Linux / macOS:
+# Linux/macOS
 source venv/bin/activate
 ```
 
-### 4. Install Dependencies
+### 🔹 3. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 5. Configure Environment Variables
-Create a `.env` file in the project root with the following values:
+### 🔹 4. Configure Environment
+
+Create `.env` file:
+
 ```env
 EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-email-app-password
+EMAIL_HOST_PASSWORD=your-app-password
 ```
 
-> Note: Do not commit `.env` to version control.
+---
 
-### 6. Run Migrations
+### 🔹 5. Migrate Database
+
 ```bash
 python manage.py migrate
 ```
 
-### 7. Create Admin User
+### 🔹 6. Create Admin
+
 ```bash
 python manage.py create_admin
 ```
-This creates a default admin account:
-- **Username:** `admin`
-- **Password:** `admin123`
 
-### 8. Run the Server
+Default:
+
+* Username: `admin`
+* Password: `SystemAdmin@2026`
+
+---
+
+### 🔹 7. Run Server
+
 ```bash
 python manage.py runserver
 ```
-Open your browser at: `http://127.0.0.1:8000`
+
+Open:
+👉 http://127.0.0.1:8000/
 
 ---
 
 ## 📁 Project Structure
+
 ```
 FRAS/
+├── attendance/
+├── facetrack/
+├── templates/
+├── static/
+├── media/
 ├── manage.py
 ├── requirements.txt
-├── README.md
-├── .gitignore
-├── .env                  # local environment variables (not committed)
-├── db.sqlite3            # local database (ignored in git)
-├── attendance/
-│   ├── __init__.py
-│   ├── admin.py
-│   ├── apps.py
-│   ├── decorators.py
-│   ├── face_utils.py
-│   ├── forms.py
-│   ├── management/
-│   │   ├── __init__.py
-│   │   └── commands/
-│   │       ├── create_admin.py
-│   │       └── start_attendance.py
-│   ├── migrations/
-│   ├── models.py
-│   ├── templates/
-│   ├── templatetags/
-│   ├── urls.py
-│   └── views.py
-├── facetrack/
-│   ├── __init__.py
-│   ├── asgi.py
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-├── templates/
-│   └── attendance/
-├── static/
-│   ├── css/
-│   ├── images/
-│   └── js/
-└── media/
-    └── employee_photos/
 ```
 
 ---
 
-## 🔧 Features
+## 📬 Email Configuration
 
-### Admin
-- Login at `/login/` using admin role
-- Add employees with:
-  - profile info
-  - employee ID
-  - department
-  - phone number
-  - photo upload or webcam capture
-- Automatic face encoding from employee photo
-- View employees list
-- Export employee details in CSV and PDF
-- View attendance records with date/department filters
-- Export attendance reports in CSV and PDF
-- Start face recognition using server webcam
-- Live monitor page for browser-based attendance
+Update in `settings.py`:
 
-### Employee
-- Login at `/login/` using employee role
-- View employee dashboard
-- View profile and attendance history
-- Change password
-- Forgot password via email with temporary password reset
+```python
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+```
 
----
-
-## 🔑 Default Credentials
-| Role  | Username | Password  |
-|-------|----------|-----------|
-| Admin | admin    | admin123  |
-
-> Make sure to update the admin password before deployment.
-
----
-
-## 📬 Email Setup
-The project uses Gmail SMTP settings in `facetrack/settings.py`:
-- `EMAIL_HOST = 'smtp.gmail.com'`
-- `EMAIL_PORT = 587`
-- `EMAIL_USE_TLS = True`
-- `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` from `.env`
-
-If using Gmail, create an app password and enable SMTP access.
+Use **App Password** for Gmail.
 
 ---
 
 ## 🎯 Useful Commands
+
 ```bash
 python manage.py runserver
 python manage.py migrate
@@ -166,25 +237,53 @@ python manage.py start_attendance
 
 ---
 
-## ⚠️ Important Notes
-- Do not commit secrets or local files:
-  - `.env`
-  - `db.sqlite3`
-  - `media/`
-  - `venv/`
-  - `__pycache__/`
-- Set `DEBUG = False` in production
-- Configure `ALLOWED_HOSTS` before deploying
-- Use HTTPS in production
+## ⚠️ Important Guidelines
+
+### 🔒 Security
+
+* Never commit `.env`
+* Use strong passwords
+* Set `DEBUG = False` in production
+* Configure `ALLOWED_HOSTS`
+
+### 📷 Face Recognition
+
+* Use clear front-facing images
+* Ensure good lighting
+* Avoid multiple faces in capture
+
+### ⚡ Performance
+
+* LBPH works best for small datasets
+* Avoid large-scale production use without optimization
 
 ---
 
-## ✅ Recommended Git Ignore
-The repo already includes a `.gitignore` to ignore:
-- Python caches and compiled files
-- virtual environment folders
-- database files and logs
-- local environment variables
-- media uploads
-- IDE/editor settings
-- OS temporary files
+## 🚀 Future Enhancements
+
+* Deep Learning Models (FaceNet, CNN)
+* PostgreSQL / Cloud DB
+* Mobile App Integration
+* Multi-camera support
+* Real-time analytics dashboard
+
+---
+
+## 🤝 Contribution
+
+Pull requests are welcome.
+For major changes, open an issue first.
+
+---
+
+## 👨‍💻 Author
+
+**Aniket Chandiwade**
+
+---
+
+## ⭐ Support
+
+If you like this project, give it a ⭐ on GitHub!
+
+---
