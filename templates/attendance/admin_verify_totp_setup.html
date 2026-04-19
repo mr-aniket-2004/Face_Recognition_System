@@ -1,0 +1,115 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Verify TOTP Setup{% endblock %}
+
+{% block body %}
+<div class="main" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg);">
+    <div style="max-width: 500px; width: 100%; padding: 0 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <div style="width: 48px; height: 48px; background: rgba(56, 139, 253, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                <span style="font-size: 24px;">✅</span>
+            </div>
+            <h2 style="font-family: var(--font-head); font-size: 24px; font-weight: 700; margin: 0 0 8px 0; color: var(--text);">
+                Verify TOTP Device
+            </h2>
+            <p style="font-size: 14px; color: var(--muted); margin: 0;">
+                Scan the QR code with your authenticator app and enter the code
+            </p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% else %}alert-warning{% endif %}" style="margin-bottom: 20px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- QR Code Display -->
+        <div class="card" style="padding: 24px; margin-bottom: 24px;">
+            <div style="text-align: center;">
+                <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0; color: var(--text);">Scan QR Code</h3>
+                <div style="display: flex; justify-content: center; margin-bottom: 16px;">
+                    <!-- QR Code Image -->
+                    <div style="background: white; padding: 16px; border-radius: 8px; border: 2px solid var(--border);">
+                        {% if qr_code_data %}
+                            <img src="{{ qr_code_data }}" alt="TOTP QR Code" style="width: 192px; height: 192px; display: block;">
+                        {% else %}
+                            <div style="width: 192px; height: 192px; background: var(--panel); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;">
+                                <span style="color: var(--muted); font-size: 14px;">QR Code Error</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <p style="font-size: 14px; color: var(--muted); margin: 0 0 16px 0;">
+                    Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+                </p>
+
+                <!-- Manual Entry Option -->
+                <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+                    <button type="button" onclick="toggleManualEntry()"
+                            style="font-size: 14px; color: var(--blue); background: none; border: none; cursor: pointer; text-decoration: underline;">
+                        Can't scan? Enter manually
+                    </button>
+                    <div id="manualEntry" style="display: none; margin-top: 8px; padding: 12px; background: var(--panel); border-radius: 4px;">
+                        <p style="font-size: 12px; color: var(--muted); margin: 0 0 4px 0;">Manual entry key:</p>
+                        <code style="font-size: 12px; background: white; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); word-break: break-all;">{{ config_url|slice:"15:" }}</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Form -->
+        <form class="card" method="post" style="padding: 24px;">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label for="token" style="display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px;">
+                    Enter TOTP Code
+                </label>
+                <input id="token" name="token" type="text" required
+                       class="form-input" style="width: 100%; text-align: center; font-size: 18px; font-weight: 600; letter-spacing: 2px;"
+                       placeholder="000000"
+                       maxlength="6"
+                       pattern="[0-9]{6}">
+                <p style="font-size: 12px; color: var(--muted); margin: 4px 0 0 0;">
+                    Enter the 6-digit code from your authenticator app
+                </p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Verify & Complete Setup
+                </button>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{% url 'admin_otp_devices' %}" style="color: var(--blue); text-decoration: none; font-size: 14px;">
+                    Cancel Setup
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleManualEntry() {
+    const manualEntry = document.getElementById('manualEntry');
+    manualEntry.style.display = manualEntry.style.display === 'none' ? 'block' : 'none';
+}
+
+// Auto-focus and input validation
+document.getElementById('token').addEventListener('input', function(e) {
+    // Only allow numbers
+    this.value = this.value.replace(/[^0-9]/g, '');
+
+    // Auto-submit when 6 digits entered
+    if (this.value.length === 6) {
+        // Optional: auto-submit after a brief delay
+        // setTimeout(() => this.form.submit(), 500);
+    }
+});
+
+document.getElementById('token').focus();
+</script>
+{% endblock %}

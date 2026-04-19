@@ -25,6 +25,13 @@ urlpatterns = [
     path('live-monitor/', views.live_monitor, name='live_monitor'),
     path('api/process-frame/', views.process_frame, name='process_frame'),
     
+    # Admin Security
+    path('admin/forgot-password/', views.admin_forgot_password, name='admin_forgot_password'),
+    path('admin/reset-password/<uidb64>/<token>/', views.admin_reset_password, name='admin_reset_password'),
+    path('admin/otp-devices/', views.admin_otp_devices, name='admin_otp_devices'),
+    path('admin/setup-totp/', views.admin_setup_totp, name='admin_setup_totp'),
+    path('admin/verify-totp-setup/', views.admin_verify_totp_setup, name='admin_verify_totp_setup'),
+
     # Employee
     path('employee-dashboard/', views.employee_dashboard, name='employee_dashboard'),
     path('employee-profile/', views.employee_profile, name='employee_profile'),

@@ -1,0 +1,153 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}OTP Device Management{% endblock %}
+
+{% block body %}
+{% include "attendance/admin_sidebar.html" %}
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">OTP Device Management</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span style="font-size:13px;color:var(--muted);">Manage your TOTP devices and backup codes</span>
+      <a href="{% url 'admin_dashboard' %}" class="btn btn-outline">← Back to Dashboard</a>
+    </div>
+  </div>
+
+  <div class="content">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% else %}alert-warning{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+      <!-- TOTP Devices -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+          <h3 style="font-family: var(--font-head); font-size: 18px; font-weight: 600; margin: 0;">TOTP Devices</h3>
+          {% if not has_totp %}
+          <a href="{% url 'admin_setup_totp' %}" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;">
+            ➕ Add Device
+          </a>
+          {% endif %}
+        </div>
+
+        {% if totp_devices %}
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            {% for device in totp_devices %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel);">
+              <div style="display: flex; align-items: center;">
+                <div style="margin-right: 12px;">
+                  {% if device.confirmed %}
+                  <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(63, 185, 80, 0.2); display: flex; align-items: center; justify-content: center; color: var(--green);">
+                    ✓
+                  </div>
+                  {% else %}
+                  <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(210, 153, 34, 0.2); display: flex; align-items: center; justify-content: center; color: var(--yellow);">
+                    ⚠
+                  </div>
+                  {% endif %}
+                </div>
+                <div>
+                  <p style="font-weight: 600; margin: 0; color: var(--text);">{{ device.name }}</p>
+                  <p style="font-size: 12px; margin: 4px 0 0 0; color: var(--muted);">
+                    {% if device.confirmed %}
+                      Configured
+                    {% else %}
+                      Setup in progress
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                {% if not device.confirmed %}
+                <a href="{% url 'admin_verify_totp_setup' %}" style="color: var(--blue); font-size: 12px; font-weight: 600; text-decoration: none;">
+                  Complete Setup
+                </a>
+                {% endif %}
+                <button class="btn btn-danger" style="font-size: 12px; padding: 4px 8px;" onclick="deleteDevice({{device.id}})">
+                  🗑️
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align: center; padding: 40px 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+            <h3 style="font-family: var(--font-head); font-size: 16px; font-weight: 600; margin: 0 0 8px 0; color: var(--text);">No TOTP devices</h3>
+            <p style="font-size: 14px; color: var(--muted); margin: 0 0 24px 0;">
+              Add a TOTP device for enhanced security during password reset.
+            </p>
+            <a href="{% url 'admin_setup_totp' %}" class="btn btn-primary">
+              ➕ Add TOTP Device
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Backup Codes -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+          <h3 style="font-family: var(--font-head); font-size: 18px; font-weight: 600; margin: 0;">Backup Codes</h3>
+          <button class="btn btn-outline" style="font-size: 12px; padding: 6px 12px;" onclick="regenerateBackupCodes()">
+            🔄 Regenerate
+          </button>
+        </div>
+
+        {% if backup_codes %}
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+            {% for code in backup_codes %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px;">
+              <code style="font-family: monospace; font-size: 14px; color: var(--text);">{{ code.code }}</code>
+              <span style="font-size: 11px; color: var(--muted);">Unused</span>
+            </div>
+            {% endfor %}
+          </div>
+          <div style="padding: 16px; background: rgba(210, 153, 34, 0.1); border: 1px solid rgba(210, 153, 34, 0.3); border-radius: 8px;">
+            <div style="display: flex; align-items: flex-start;">
+              <div style="color: var(--yellow); margin-right: 12px; font-size: 20px;">⚠</div>
+              <div>
+                <p style="font-weight: 600; margin: 0 0 4px 0; color: var(--yellow); font-size: 14px;">
+                  Important:
+                </p>
+                <p style="font-size: 13px; color: var(--text); margin: 0;">
+                  Save these backup codes in a secure location. Each code can only be used once.
+                </p>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div style="text-align: center; padding: 40px 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+            <h3 style="font-family: var(--font-head); font-size: 16px; font-weight: 600; margin: 0 0 8px 0; color: var(--text);">No backup codes</h3>
+            <p style="font-size: 14px; color: var(--muted); margin: 0;">
+              Generate backup codes for account recovery.
+            </p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function deleteDevice(deviceId) {
+    if (confirm('Are you sure you want to delete this TOTP device?')) {
+        // TODO: Implement device deletion
+        alert('Device deletion not yet implemented');
+    }
+}
+
+function regenerateBackupCodes() {
+    if (confirm('This will invalidate all existing backup codes. Are you sure?')) {
+        // TODO: Implement backup code regeneration
+        alert('Backup code regeneration not yet implemented');
+    }
+}
+</script>
+{% endblock %}

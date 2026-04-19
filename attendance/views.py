@@ -6,6 +6,7 @@ import csv
 from io import BytesIO
 import random
 import string
+import qrcode
 
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -32,7 +33,7 @@ from reportlab.lib.pagesizes import letter, A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
-from .models import Employee, Attendance, UserRole, UserOTP
+from .models import AdminBackupCode, AdminSecurityQuestion, AdminTOTPDevice, Employee, Attendance, UserRole, UserOTP
 from .forms import EmployeeForm, EmployeeEditForm, ChangePasswordForm, SetPasswordForm, ManualCheckoutForm
 from .decorators import admin_required, employee_required
 
@@ -92,7 +93,7 @@ If you did not request this OTP, please ignore this email.
                     return redirect('verify_otp')
                     
                 except Exception as e:
-                    messages.error(request, f'Failed to send OTP: {str(e)}')
+                    messages.error(request, f'Failed to send OTP')
                     logger.error(f"Failed to send OTP to {username}: {str(e)}")
             else:
                 messages.error(request, f'You do not have {role} access.')
@@ -210,7 +211,7 @@ If you did not request this OTP, please ignore this email.
         logger.info(f"OTP resent to user: {user.username}")
         
     except Exception as e:
-        messages.error(request, f'Failed to resend OTP: {str(e)}')
+        messages.error(request, f'Failed to resend OTP:')
         logger.error(f"Failed to resend OTP: {str(e)}")
     
     return redirect('verify_otp')
@@ -320,6 +321,274 @@ def forgot_password(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+
+# ─── ADMIN PASSWORD RESET WITH OTP DEVICES ─────────────────────────────────
+def admin_forgot_password(request):
+    """Admin forgot password with enhanced security."""
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        if not email:
+            messages.error(request, 'Please enter your email address.')
+            return redirect('admin_forgot_password')
+
+        try:
+            user = User.objects.get(email__iexact=email)
+            # Check if user has admin role
+            if not hasattr(user, 'role') or user.role.role != 'admin':
+                messages.error(request, 'This email is not associated with an admin account.')
+                return redirect('admin_forgot_password')
+
+            # Create password reset OTP
+            otp = UserOTP.create_otp_for_user(user, expiry_minutes=10)
+            
+            try:
+                # Send email with reset instructions
+                reset_link = request.build_absolute_uri(reverse('admin_reset_password', 
+                    kwargs={'uidb64': urlsafe_base64_encode(force_bytes(user.pk)), 
+                           'token': default_token_generator.make_token(user)}))
+                
+                send_mail(
+                    'FaceTrack Admin Password Reset',
+                    f'''Hello {user.get_full_name()},
+
+A password reset request was made for your FaceTrack admin account.
+
+Username: {user.username}
+Reset Link: {reset_link}
+One-Time Password (OTP): {otp.otp_code}
+
+This OTP is valid for 10 minutes.
+
+For enhanced security, you will need to verify using your registered TOTP device (if configured) or backup codes.
+
+If you did not request this reset, please ignore this email and contact system administrator.
+
+--- FaceTrack Admin System ---''',
+                    settings.EMAIL_HOST_USER,
+                    [user.email],
+                    fail_silently=False,
+                )
+                
+                messages.success(request, 'Password reset instructions sent to your email.')
+                logger.info(f"Admin password reset initiated for: {user.username}")
+                
+            except Exception as e:
+                messages.error(request, f'Failed to send reset email: {str(e)}')
+                logger.error(f"Failed to send admin password reset email to {user.username}: {str(e)}")
+
+        except User.DoesNotExist:
+            messages.error(request, 'No admin account found with this email address.')
+            return redirect('admin_forgot_password')
+
+    return render(request, 'attendance/admin_forgot_password.html')
+
+
+def admin_reset_password(request, uidb64, token):
+    """Admin password reset with multi-factor verification."""
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is None or not default_token_generator.check_token(user, token):
+        messages.error(request, 'Password reset link is invalid or expired.')
+        return redirect('admin_forgot_password')
+
+    # Check if user has TOTP devices
+    totp_devices = AdminTOTPDevice.objects.filter(user=user, confirmed=True)
+    has_totp = totp_devices.exists()
+    
+    # Check if user has backup codes
+    backup_codes = AdminBackupCode.objects.filter(user=user, is_used=False)
+    has_backup = backup_codes.exists()
+    
+    if request.method == 'POST':
+        form = SetPasswordForm(request.POST)
+        if form.is_valid():
+            otp_code = request.POST.get('otp_code', '').strip()
+            totp_token = request.POST.get('totp_token', '').strip()
+            backup_code = request.POST.get('backup_code', '').strip()
+            
+            # Verify email OTP
+            try:
+                otp_obj = UserOTP.objects.get(user=user, otp_code=otp_code)
+                if not otp_obj.is_valid():
+                    messages.error(request, 'Email OTP has expired. Please request a new reset link.')
+                    return render(request, 'attendance/admin_reset_password.html', {
+                        'form': form, 'has_totp': has_totp, 'has_backup': has_backup
+                    })
+            except UserOTP.DoesNotExist:
+                messages.error(request, 'Invalid email OTP.')
+                return render(request, 'attendance/admin_reset_password.html', {
+                    'form': form, 'has_totp': has_totp, 'has_backup': has_backup
+                })
+            
+            # Verify TOTP or backup code
+            verification_passed = False
+            
+            if has_totp and totp_token:
+                # Verify TOTP token
+                for device in totp_devices:
+                    if device.verify_token(totp_token):
+                        verification_passed = True
+                        break
+                if not verification_passed:
+                    messages.error(request, 'Invalid TOTP token.')
+            elif has_backup and backup_code:
+                # Verify backup code
+                try:
+                    backup_obj = AdminBackupCode.objects.get(user=user, code=backup_code.upper(), is_used=False)
+                    backup_obj.mark_as_used()
+                    verification_passed = True
+                except AdminBackupCode.DoesNotExist:
+                    messages.error(request, 'Invalid backup code.')
+            else:
+                messages.error(request, 'Please provide TOTP token or backup code for verification.')
+            
+            if verification_passed:
+                # Set new password
+                user.set_password(form.cleaned_data['new_password'])
+                user.save()
+                otp_obj.mark_as_used()
+                
+                # Log the user in
+                login(request, user)
+                messages.success(request, 'Your admin password has been reset successfully.')
+                
+                logger.info(f"Admin password reset completed for: {user.username}")
+                return redirect('admin_dashboard')
+            
+    else:
+        form = SetPasswordForm()
+    
+    return render(request, 'attendance/admin_reset_password.html', {
+        'form': form, 'has_totp': has_totp, 'has_backup': has_backup
+    })
+
+
+@login_required
+@admin_required
+def admin_otp_devices(request):
+    """Manage admin OTP devices and backup codes."""
+    user = request.user
+    
+    # Get TOTP devices
+    totp_devices = AdminTOTPDevice.objects.filter(user=user)
+    
+    # Get backup codes
+    backup_codes = AdminBackupCode.objects.filter(user=user, is_used=False)
+    
+    # Get security questions
+    security_questions = AdminSecurityQuestion.objects.filter(user=user)
+    
+    context = {
+        'totp_devices': totp_devices,
+        'backup_codes': backup_codes,
+        'security_questions': security_questions,
+        'has_totp': totp_devices.filter(confirmed=True).exists(),
+        'has_backup': backup_codes.exists(),
+    }
+    
+    return render(request, 'attendance/admin_otp_devices.html', context)
+
+
+@login_required
+@admin_required
+def admin_setup_totp(request):
+    """Setup TOTP device for admin."""
+    user = request.user
+    
+    # Check if user already has a confirmed TOTP device
+    if AdminTOTPDevice.objects.filter(user=user, confirmed=True).exists():
+        messages.warning(request, 'You already have a configured TOTP device.')
+        return redirect('admin_otp_devices')
+    
+    if request.method == 'POST':
+        device_name = request.POST.get('device_name', f'{user.username}_TOTP')
+        
+        # Create new TOTP device
+        device = AdminTOTPDevice.objects.create(
+            user=user,
+            name=device_name,
+            confirmed=False
+        )
+        
+        # Store device ID in session for verification
+        request.session['totp_device_id'] = device.id
+        
+        messages.success(request, 'TOTP device created. Please scan the QR code and verify.')
+        return redirect('admin_verify_totp_setup')
+    
+    return render(request, 'attendance/admin_setup_totp.html')
+
+
+@login_required
+@admin_required
+def admin_verify_totp_setup(request):
+    """Verify TOTP device setup."""
+    user = request.user
+    device_id = request.session.get('totp_device_id')
+    
+    if not device_id:
+        messages.error(request, 'No TOTP device setup in progress.')
+        return redirect('admin_otp_devices')
+    
+    try:
+        device = AdminTOTPDevice.objects.get(id=device_id, user=user, confirmed=False)
+    except AdminTOTPDevice.DoesNotExist:
+        messages.error(request, 'TOTP device not found.')
+        return redirect('admin_otp_devices')
+    
+    if request.method == 'POST':
+        token = request.POST.get('token', '').strip()
+        
+        if device.verify_token(token):
+            device.confirmed = True
+            device.save()
+            
+            # Generate backup codes
+            AdminBackupCode.create_backup_codes_for_user(user)
+            
+            # Clear session
+            del request.session['totp_device_id']
+            
+            messages.success(request, 'TOTP device verified successfully! Backup codes have been generated.')
+            logger.info(f"TOTP device setup completed for admin: {user.username}")
+            
+            return redirect('admin_otp_devices')
+        else:
+            messages.error(request, 'Invalid token. Please try again.')
+    
+    # Generate QR code
+    config_url = device.config_url
+    
+    # Create QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(config_url)
+    qr.make(fit=True)
+    
+    # Create QR code image
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to base64 for template
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    
+    context = {
+        'device': device,
+        'config_url': config_url,
+        'qr_code_data': f"data:image/png;base64,{qr_code_base64}",
+    }
+    
+    return render(request, 'attendance/admin_verify_totp_setup.html', context)
 
 
 # ─── ADMIN DASHBOARD ─────────────────────────────────

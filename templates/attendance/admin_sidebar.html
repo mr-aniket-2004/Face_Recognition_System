@@ -11,6 +11,7 @@
     <a href="{% url 'employee_list' %}" class="nav-item {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}">👥 Employees</a>
     <a href="{% url 'add_employee' %}" class="nav-item {% if request.resolver_match.url_name == 'add_employee' %}active{% endif %}">➕ Add Employee</a>
     <a href="{% url 'attendance_records' %}" class="nav-item {% if request.resolver_match.url_name == 'attendance_records' %}active{% endif %}">📋 Attendance</a>
+    <!-- <a href="{% url 'admin_otp_devices' %}" class="nav-item {% if request.resolver_match.url_name == 'admin_otp_devices' %}active{% endif %}">🔐 Security</a> -->
     <div class="nav-label" style="margin-top:16px;">Recognition</div>
     <a href="{% url 'live_monitor' %}" class="nav-item {% if request.resolver_match.url_name == 'live_monitor' %}active{% endif %}">📹 Live Monitor</a>
   </nav>

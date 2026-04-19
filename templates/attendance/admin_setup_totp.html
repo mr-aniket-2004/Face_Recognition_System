@@ -1,0 +1,74 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Setup TOTP Device{% endblock %}
+
+{% block body %}
+<div class="main" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg);">
+    <div style="max-width: 400px; width: 100%; padding: 0 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <div style="width: 48px; height: 48px; background: rgba(56, 139, 253, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                <span style="font-size: 24px;">📱</span>
+            </div>
+            <h2 style="font-family: var(--font-head); font-size: 24px; font-weight: 700; margin: 0 0 8px 0; color: var(--text);">
+                Setup TOTP Device
+            </h2>
+            <p style="font-size: 14px; color: var(--muted); margin: 0;">
+                Add a TOTP device for enhanced security during password reset
+            </p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% else %}alert-warning{% endif %}" style="margin-bottom: 20px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form class="card" method="post" style="padding: 24px;">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label for="device_name" style="display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px;">
+                    Device Name
+                </label>
+                <input id="device_name" name="device_name" type="text" required
+                       class="form-input" style="width: 100%;"
+                       placeholder="e.g., My iPhone, Google Authenticator"
+                       value="{{ user.username }}_TOTP">
+                <p style="font-size: 12px; color: var(--muted); margin: 4px 0 0 0;">
+                    Choose a name to identify this device
+                </p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Create TOTP Device
+                </button>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{% url 'admin_otp_devices' %}" style="color: var(--blue); text-decoration: none; font-size: 14px;">
+                    Cancel
+                </a>
+            </div>
+        </form>
+
+        <div style="margin-top: 24px; padding: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;">
+            <div style="display: flex; align-items: flex-start;">
+                <div style="color: var(--blue); margin-right: 12px; font-size: 20px;">ℹ️</div>
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 4px 0; color: var(--text);">
+                        What is TOTP?
+                    </h3>
+                    <div style="font-size: 13px; color: var(--muted);">
+                        <p style="margin: 0;">
+                            TOTP (Time-based One-Time Password) generates secure, temporary codes using authenticator apps like Google Authenticator, Authy, or Microsoft Authenticator. These codes change every 30 seconds and provide an additional security layer for your admin account.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

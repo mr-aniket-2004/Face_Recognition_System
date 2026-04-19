@@ -5,6 +5,8 @@ from datetime import timedelta
 import numpy as np
 import json
 import secrets
+from django_otp.models import Device
+from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
 class Employee(models.Model):
@@ -126,3 +128,94 @@ class UserOTP(models.Model):
             expires_at=expires_at
         )
         return otp_obj
+
+
+class AdminTOTPDevice(TOTPDevice):
+    """TOTP device for admin users with enhanced security."""
+    
+    class Meta:
+        verbose_name = "Admin TOTP Device"
+        verbose_name_plural = "Admin TOTP Devices"
+    
+    def __str__(self):
+        return f"TOTP Device for {self.user.username}"
+
+
+class AdminBackupCode(models.Model):
+    """Backup codes for admin password reset when TOTP device is unavailable."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_backup_codes')
+    code = models.CharField(max_length=10, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    is_used = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Admin Backup Code"
+        verbose_name_plural = "Admin Backup Codes"
+    
+    def __str__(self):
+        return f"Backup Code for {self.user.username}"
+    
+    @staticmethod
+    def generate_backup_codes(count=10):
+        """Generate a list of backup codes."""
+        codes = []
+        for _ in range(count):
+            code = ''.join(secrets.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(8))
+            codes.append(code.upper())
+        return codes
+    
+    @classmethod
+    def create_backup_codes_for_user(cls, user, count=10):
+        """Create backup codes for a user, replacing existing unused ones."""
+        # Delete existing unused codes
+        cls.objects.filter(user=user, is_used=False).delete()
+        
+        codes = cls.generate_backup_codes(count)
+        backup_codes = []
+        
+        for code in codes:
+            backup_codes.append(cls.objects.create(user=user, code=code))
+        
+        return backup_codes
+    
+    def mark_as_used(self):
+        """Mark backup code as used."""
+        self.is_used = True
+        self.used_at = timezone.now()
+        self.save()
+
+
+class AdminSecurityQuestion(models.Model):
+    """Security questions for additional admin verification."""
+    QUESTION_CHOICES = [
+        ('mother_maiden', "What is your mother's maiden name?"),
+        ('first_pet', "What was the name of your first pet?"),
+        ('birth_city', "In what city were you born?"),
+        ('first_school', "What was the name of your first school?"),
+        ('favorite_teacher', "Who was your favorite teacher?"),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='security_questions')
+    question = models.CharField(max_length=50, choices=QUESTION_CHOICES)
+    answer = models.CharField(max_length=255)  # Will be hashed
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'question')
+        verbose_name = "Admin Security Question"
+        verbose_name_plural = "Admin Security Questions"
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_question_display()}"
+    
+    def set_answer(self, raw_answer):
+        """Hash the answer before saving."""
+        import hashlib
+        self.answer = hashlib.sha256(raw_answer.lower().strip().encode()).hexdigest()
+    
+    def check_answer(self, raw_answer):
+        """Check if the provided answer matches."""
+        import hashlib
+        return self.answer == hashlib.sha256(raw_answer.lower().strip().encode()).hexdigest()
