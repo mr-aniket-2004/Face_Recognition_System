@@ -271,7 +271,7 @@ python manage.py start_attendance
 ## 🚀 Future Enhancements
 
 * Deep Learning Models (FaceNet, CNN)
-* PostgreSQL / Cloud DB
+* Cloud DB
 * Mobile App Integration
 * Multi-camera support
 * Real-time analytics dashboard
