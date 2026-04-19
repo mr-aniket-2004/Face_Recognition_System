@@ -1,6 +1,6 @@
 # 🚀 FaceTrack — Smart Attendance System
 
-![Banner](GitImages\banner.png)
+![Banner](GitImages/banner.png)
 
 ![GitHub stars](https://img.shields.io/github/stars/mr-aniket-2004/Face_Recognition_System?style=for-the-badge)
 ![GitHub forks](https://img.shields.io/github/forks/mr-aniket-2004/Face_Recognition_System?style=for-the-badge)
