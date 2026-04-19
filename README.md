@@ -1,6 +1,6 @@
 # 🚀 FaceTrack — Smart Attendance System
 
-![Banner](https://capsule-render.vercel.app/api?type=waving\&color=0:0f2027,100:00c6ff\&height=220\&section=header\&text=FaceTrack%20Attendance%20System\&fontSize=32\&fontColor=ffffff\&animation=fadeIn)
+![Banner](GitImages\banner.png)
 
 ![GitHub stars](https://img.shields.io/github/stars/mr-aniket-2004/Face_Recognition_System?style=for-the-badge)
 ![GitHub forks](https://img.shields.io/github/forks/mr-aniket-2004/Face_Recognition_System?style=for-the-badge)
@@ -29,6 +29,12 @@ The system includes:
 * 👨‍💼 Employee self-service dashboard
 
 ---
+
+## ✨ Project Preview
+---
+![Login](GitImages\Login.png)
+![Admin](GitImages\admin_panal.png)
+![User](GitImages\user_panal.png)
 
 ## ✨ Core Features
 
