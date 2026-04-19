@@ -33,8 +33,11 @@ The system includes:
 ## ✨ Project Preview
 ---
 ![Login](GitImages/Login.png)
+---
 ![Admin](GitImages/admin_panal.png)
+---
 ![User](GitImages/user_panal.png)
+----
 
 ## ✨ Core Features
 
